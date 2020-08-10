@@ -57,6 +57,63 @@ def _round_nsd_base10(x, nsd):
     # or could pass to _round_dsd_base10
 
 
+def _nsb_from_nsd(nsd):
+    """Number of sigificant bits from number of sigificant digits (sig figs)."""
+    return int(np.ceil(np.log(10)/np.log(2)*nsd))
+
+
+def _round_binary(x, nsd, *, inplace=False):
+    """Round in binary, preserving significant bits based on desired `nsd`.
+    
+    Parameters
+    ----------
+    x : numpy.ndarray
+    nsd : int
+        number of significant digits (sig figs)
+    inplace : bool
+        whether to round in place and modify `x`
+        default False
+    
+    Returns
+    -------
+    numpy.array
+        rounded array
+        
+    Notes
+    -----
+    Following:
+    - https://github.com/esowc/Elefridge.jl/blob/master/src/bitrounding.jl
+    - https://github.com/esowc/Elefridge.jl/blob/master/src/bitgrooming.jl
+    """    
+    nsb = _nsb_from_nsd(nsd)
+    dtype = x.dtype
+    
+    if dtype == np.float32:
+        ui_type = np.uint32  # was using "<i4" (not unsigned, but integer)
+        shift = 23 - nsb
+        setmask = 0x003f_ffff >> nsb
+        shavemask = ~ np.array(2**(23-nsb) - 1).view(ui_type)
+        and1 = 0x0000_0001
+        
+    elif dtype == np.float64:
+        ui_type = np.uint64  # was using "<i8"
+        shift = 52 - nsb
+        setmask = 0x0007_ffff_ffff_ffff >> nsb
+        shavemask = ~ np.array(2**(52-nsb) - 1).view(ui_type)
+        and1 = 0x0000_0000_0000_0001
+        
+    else:
+        raise TypeError(f"x.dtype={dtype!r} not supported.")
+    
+    ui = x.view(ui_type)
+    if not inplace:
+        ui = ui.copy()
+        
+    ui += setmask + ((ui >> shift) & and1)
+    
+    return (ui & shavemask).view(dtype)
+
+
 def round_array(x, nsd=None, dsd=None):
     """Round a NumPy array using selected method.
 
