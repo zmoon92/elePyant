@@ -114,20 +114,27 @@ def _round_binary(x, nsd, *, inplace=False):
     return (ui & shavemask).view(dtype)
 
 
-def round_array(x, nsd=None, dsd=None):
+def round_array(x, nsd=None, dsd=None, in_binary=False):
     """Round a NumPy array using selected method.
 
     Args:
         x (numpy.ndarray)
         nsd (int)
         dsd (int)
+        in_binary (bool)
 
     """
     if nsd and dsd:
         raise Exception(f"Must set either `nsd` or `dsd`, not both.")
 
+    if in_binary and not nsd:
+        raise Exception("Must set `nsd` to use option `in_binary`.")
+
     if nsd:
-        return _round_nsd_base10(x, nsd)
+        if in_binary:
+            return _round_binary(x, nsd)  # note not passing inplace here
+        else:
+            return _round_nsd_base10(x, nsd)
 
     elif dsd:
         return _round_dsd_base10(x, dsd)
@@ -162,6 +169,7 @@ def round_dataarray(da, *, keep_attrs=True, inplace=False, **kwargs):
     return da_rounded
 
 
+# TODO
 def compress_dataarray(da, out_filename, decimal_places):
     """Compressses an xarray.DataArray object.
 
@@ -185,6 +193,8 @@ def compress_dataarray(da, out_filename, decimal_places):
                          engine='h5netcdf')
 
 
+# new decimal_places: dict of round_dataarray settings. for each var or just one.
+# could rename to `precision`, or `rounding_options` or somesuch
 def compress_dataset(ds, out_filename, decimal_places, ignore_vars=None):
     """Compresses an xarray.Dataset object.
 
@@ -225,9 +235,8 @@ def compress_dataset(ds, out_filename, decimal_places, ignore_vars=None):
         for var_to_remove in ignore_vars:
             decimal_places.pop(var_to_remove)
 
-    for variable in decimal_places:
-        ds[variable] = np.around(ds[variable],
-                                 decimals=decimal_places[variable])
+    for variable in ds.data_vars:  # hack for now
+        ds[variable] = round_dataarray(ds[variable], **decimal_places)
 
     # Have to turn on lossless compression for each variable in ds.
     encoding = {ds_var: {'zlib': True} for ds_var in ds.variables}
@@ -235,6 +244,7 @@ def compress_dataset(ds, out_filename, decimal_places, ignore_vars=None):
     ds.to_netcdf(out_filename, encoding=encoding, engine='h5netcdf')
 
 
+# TODO
 def compress_netcdf(in_filename, out_filename, decimal_places, ignore_vars=None):
     """Opens a netCDF file and applies compress_dataset to it.
 
