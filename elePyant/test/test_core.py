@@ -74,3 +74,14 @@ class TestnetCDFFuncs:
 def test_round_nsd_base10(x, nsd, expected):
     rounded = ep.core._round_nsd_base10(x, nsd)
     assert np.alltrue(rounded == expected)
+
+
+@pytest.mark.parametrize(
+    ("x", "nsd", "expected"),
+    [
+        (np.r_[np.pi], 2, np.r_[3.140625]),  # https://github.com/fraserwg/elePyant/issues/1#issuecomment-658447115
+    ]
+)
+def test_round_binary(x, nsd, expected):
+    rounded = ep.core._round_binary(x, nsd)
+    assert np.alltrue(rounded == expected)
