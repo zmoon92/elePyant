@@ -89,17 +89,17 @@ def _round_binary(x, nsd, *, inplace=False):
     dtype = x.dtype
     
     if dtype == np.float32:
-        ui_type = np.uint32  # was using "<i4" (not unsigned, but integer)
+        ui_type = np.uint32
         shift = 23 - nsb
         setmask = 0x003f_ffff >> nsb
-        shavemask = ~ np.array(2**(23-nsb) - 1, dtype=ui_type)
+        shavemask = ~ ui_type(2**(23-nsb) - 1)
         and1 = 0x0000_0001
         
     elif dtype == np.float64:
-        ui_type = np.uint64  # was using "<i8"
+        ui_type = np.uint64
         shift = 52 - nsb
         setmask = 0x0007_ffff_ffff_ffff >> nsb
-        shavemask = ~ np.array(2**(52-nsb) - 1, dtype=ui_type)
+        shavemask = ~ ui_type(2**(52-nsb) - 1)
         and1 = 0x0000_0000_0000_0001
         
     else:
