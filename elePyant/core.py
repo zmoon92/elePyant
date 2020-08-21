@@ -114,7 +114,7 @@ def _round_binary(x, nsd, *, inplace=False):
     return (ui & shavemask).view(dtype)
 
 
-def round_array(x, nsd=None, dsd=None, in_binary=False):
+def round_array(x, nsd=None, dsd=None, in_binary=False, inplace=False):
     """Round a NumPy array using selected method.
 
     Args:
@@ -122,17 +122,26 @@ def round_array(x, nsd=None, dsd=None, in_binary=False):
         nsd (int)
         dsd (int)
         in_binary (bool)
+        inplace (bool) : ``_round_binary`` can optionally round the array in place (default False)
 
     """
+    # handle unallowed option combos
     if nsd and dsd:
         raise Exception(f"Must set either `nsd` or `dsd`, not both.")
 
     if in_binary and not nsd:
         raise Exception("Must set `nsd` to use option `in_binary`.")
 
+    if inplace and not (in_binary and nsd):
+        raise Exception("Must set `nsd` (to an integer) and `in_binary=True` to use `inplace`.")
+
+    # call corresponding array rounder
     if nsd:
         if in_binary:
-            return _round_binary(x, nsd)  # note not passing inplace here
+            if inplace:
+                _round_binary(x, nsd, inplace=inplace)
+            else:
+                return _round_binary(x, nsd)  # note not passing inplace here
         else:
             return _round_nsd_base10(x, nsd)
 
