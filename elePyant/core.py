@@ -110,9 +110,10 @@ def _round_binary(x, nsd, *, inplace=False):
         ui = ui.copy()
         
     ui += setmask + ((ui >> shift) & and1)
-    
-    return (ui & shavemask).view(dtype)
+    ui &= shavemask
 
+    return ui.view(dtype)
+    
 
 def round_array(x, nsd=None, dsd=None, in_binary=False, inplace=False):
     """Round a NumPy array using selected method.
